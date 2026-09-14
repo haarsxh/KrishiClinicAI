@@ -13,6 +13,9 @@ aiosqlite==0.20.0
 pydantic==2.9.0
 pydantic-settings==2.5.0
 
+# Environment loading (imported directly by app/__init__.py and alembic/env.py)
+python-dotenv==1.0.1
+
 # File handling
 aiofiles==24.1.0
 

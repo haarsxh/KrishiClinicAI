@@ -28,14 +28,21 @@ if "sslmode=" in db_url:
             db_url = base_url
     connect_args["ssl"] = True
 
-engine = create_async_engine(
-    db_url,
-    echo=settings.DEBUG,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,
-    connect_args=connect_args,
-)
+# SQLite uses NullPool and rejects QueuePool-only arguments, so only pass the
+# connection-pool tuning to server-backed databases such as PostgreSQL.
+engine_kwargs = {
+    "echo": settings.DEBUG,
+    "connect_args": connect_args,
+}
+
+if not db_url.startswith("sqlite"):
+    engine_kwargs.update(
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True,
+    )
+
+engine = create_async_engine(db_url, **engine_kwargs)
 
 async_session_factory = async_sessionmaker(
     engine,

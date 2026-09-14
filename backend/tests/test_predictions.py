@@ -126,7 +126,10 @@ async def test_agronomist_review_flow(client, sample_image, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_auto_release_high_confidence(client, sample_image, monkeypatch):
+    """Opt-in legacy behaviour: with mandatory review disabled, confident
+    predictions are released to the farmer without an agronomist."""
     from app.core.config import get_settings
+    monkeypatch.setattr(get_settings(), "REQUIRE_AGRONOMIST_APPROVAL", False)
     monkeypatch.setattr(get_settings(), "AUTO_APPROVE_CONFIDENCE_THRESHOLD", 0.70)
 
     create_response = await client.post(
@@ -146,8 +149,64 @@ async def test_auto_release_high_confidence(client, sample_image, monkeypatch):
     assert data["reviewed_at"] is not None
 
 @pytest.mark.asyncio
+async def test_high_confidence_still_needs_agronomist_by_default(client, sample_image):
+    """Default behaviour: even a highly confident diagnosis is withheld from the
+    farmer until an agronomist approves it."""
+    create_response = await client.post(
+        "/api/v1/predictions",
+        files={"image": ("test.jpg", io.BytesIO(sample_image), "image/jpeg")},
+        data={"crop_type": "Wheat", "farmer_notes": "Rust spots"},
+    )
+    assert create_response.status_code == 201
+    pred_id = create_response.json()["id"]
+
+    # The farmer must not see the diagnosis yet.
+    data = (await client.get(f"/api/v1/predictions/{pred_id}")).json()
+    assert data["status"] == "PENDING_REVIEW"
+    assert data["predicted_disease"] == "Pending Review"
+    assert data["confidence"] == 0.0
+    assert data["reviewed_at"] is None
+
+    # It must be sitting in the agronomist's queue.
+    queue = (await client.get("/api/v1/predictions?status=PENDING_REVIEW")).json()
+    assert pred_id in [item["id"] for item in queue["items"]]
+
+
+@pytest.mark.asyncio
+async def test_farmer_sees_diagnosis_only_after_agronomist_approves(client, sample_image):
+    """End-to-end gate: upload -> queued -> agronomist opinion -> released."""
+    pred_id = (await client.post(
+        "/api/v1/predictions",
+        files={"image": ("test.jpg", io.BytesIO(sample_image), "image/jpeg")},
+        data={"crop_type": "Wheat", "farmer_notes": "Rust spots"},
+    )).json()["id"]
+
+    assert (await client.get(f"/api/v1/predictions/{pred_id}")).json()["status"] == "PENDING_REVIEW"
+
+    review = await client.post(
+        f"/api/v1/predictions/{pred_id}/review",
+        json={
+            "predicted_disease": "Yellow Rust",
+            "severity": "High",
+            "review": "Confirmed. Apply propiconazole at 0.1%.",
+        },
+    )
+    assert review.status_code == 200
+
+    released = (await client.get(f"/api/v1/predictions/{pred_id}")).json()
+    assert released["status"] == "REVIEWED"
+    assert released["agronomist_id"] is not None
+    assert released["reviewed_at"] is not None
+    # The farmer now sees the agronomist's verified opinion.
+    assert released["agronomist_predicted_disease"] == "Yellow Rust"
+    assert released["agronomist_review"] == "Confirmed. Apply propiconazole at 0.1%."
+    assert released["predicted_disease"] != "Pending Review"
+
+
+@pytest.mark.asyncio
 async def test_low_confidence_remains_gated(client, sample_image, monkeypatch):
     from app.core.config import get_settings
+    monkeypatch.setattr(get_settings(), "REQUIRE_AGRONOMIST_APPROVAL", False)
     monkeypatch.setattr(get_settings(), "AUTO_APPROVE_CONFIDENCE_THRESHOLD", 0.99)
 
     create_response = await client.post(

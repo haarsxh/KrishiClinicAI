@@ -1,14 +1,27 @@
 import asyncio
 import os
+import sys
 from logging.config import fileConfig
+from pathlib import Path
 
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
 
-from app.core.database import Base
-from app.models.prediction import Prediction
+# Make the backend package importable no matter where alembic is invoked from,
+# so migrations do not depend on PYTHONPATH being set externally.
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
+# Pick up DATABASE_URL from a .env file (repo root or backend/) for local runs.
+from dotenv import load_dotenv  # noqa: E402
+
+load_dotenv()
+
+from app.core.database import Base  # noqa: E402
+from app.models.prediction import Prediction  # noqa: E402,F401
 
 config = context.config
 

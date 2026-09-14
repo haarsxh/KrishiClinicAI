@@ -110,28 +110,40 @@ def mask_prediction_list_item(p, user_role: str):
             "id": p.id,
             "crop_type": p.crop_type,
             "image_filename": p.image_filename,
+            # The farmer's own observations are not AI output, so they stay visible.
+            "farmer_notes": p.farmer_notes,
             "predicted_disease": "Pending Review",
             "confidence": 0.0,
             "severity": "Pending",
+            "recommendation": (
+                "Our agricultural expert is currently reviewing this prediction. "
+                "You will receive the advice once verified."
+            ),
+            "possible_reasons": "Pending Review",
             "ai_provider": "Hidden",
             "created_at": p.created_at,
             "status": p.status,
             "farmer_id": p.farmer_id,
-            "agronomist_id": p.agronomist_id
+            "agronomist_id": p.agronomist_id,
+            "location": p.location
         }
-    
+
     return {
         "id": p.id,
         "crop_type": p.crop_type,
         "image_filename": p.image_filename,
+        "farmer_notes": p.farmer_notes,
         "predicted_disease": p.agronomist_predicted_disease or p.predicted_disease,
         "confidence": p.confidence,
         "severity": p.agronomist_severity or p.severity,
+        "recommendation": p.agronomist_review or p.recommendation,
+        "possible_reasons": p.possible_reasons,
         "ai_provider": p.ai_provider,
         "created_at": p.created_at,
         "status": p.status,
         "farmer_id": p.farmer_id,
-        "agronomist_id": p.agronomist_id
+        "agronomist_id": p.agronomist_id,
+        "location": p.location
     }
 
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}

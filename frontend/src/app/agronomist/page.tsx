@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { listPredictions, reviewPrediction, getImageUrl } from "@/lib/api";
 import { useApp, Translate } from "@/context/AppContext";
-import type { Prediction } from "@/lib/types";
+import type { PredictionListItem } from "@/lib/types";
 import MedicineAdvisor from "@/components/MedicineAdvisor";
 
 export default function AgronomistPortal() {
   const { user, isInitialized, t } = useApp();
   const router = useRouter();
-  const [predictions, setPredictions] = useState<any[]>([]);
+  const [predictions, setPredictions] = useState<PredictionListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
 
@@ -44,7 +44,7 @@ export default function AgronomistPortal() {
     }
   }, [user]);
 
-  const startReview = (pred: any) => {
+  const startReview = (pred: PredictionListItem) => {
     setReviewingId(pred.id);
     setVerifiedDisease(pred.predicted_disease || "");
     setVerifiedSeverity(pred.severity || "Medium");
@@ -77,11 +77,12 @@ export default function AgronomistPortal() {
         setStatusMessage(null);
       }, 1500);
 
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
+      const detail = (err as { detail?: { detail?: { message?: string }; message?: string } })?.detail;
       setStatusMessage({
         type: "error",
-        text: err.detail?.message || "Failed to publish review.",
+        text: detail?.message || "Failed to publish review.",
       });
     } finally {
       setSubmitting(false);

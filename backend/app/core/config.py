@@ -20,6 +20,13 @@ class Settings(BaseSettings):
 
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE_MB: int = 10
+
+    # When True (the default), EVERY AI diagnosis is held in PENDING_REVIEW until
+    # an agronomist reviews and approves it - farmers never see an unverified
+    # result. Set to False to re-enable confidence-based auto-release, in which
+    # case predictions at or above AUTO_APPROVE_CONFIDENCE_THRESHOLD are
+    # published to the farmer without human review.
+    REQUIRE_AGRONOMIST_APPROVAL: bool = True
     AUTO_APPROVE_CONFIDENCE_THRESHOLD: float = 0.7
 
     CORS_ORIGINS: list[str] = [

@@ -20,7 +20,7 @@ export default function HomePage() {
   const { user, isInitialized, t } = useApp();
   const [activeTab, setActiveTab] = useState<"feed" | "admin">("feed");
   
-  const [predictions, setPredictions] = useState<any[]>([]);
+  const [predictions, setPredictions] = useState<PredictionListItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,7 @@ export default function HomePage() {
   const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   
-  const [adminPredictions, setAdminPredictions] = useState<any[]>([]);
+  const [adminPredictions, setAdminPredictions] = useState<PredictionListItem[]>([]);
   const [adminTotal, setAdminTotal] = useState(0);
   const [adminPage, setAdminPage] = useState(1);
   const [adminLoading, setAdminLoading] = useState(false);
@@ -53,7 +53,7 @@ export default function HomePage() {
       
       let filtered = res.items;
       if (selectedLocation.trim()) {
-        filtered = filtered.filter((p: any) => 
+        filtered = filtered.filter((p: PredictionListItem) => 
           p.location && p.location.toLowerCase().includes(selectedLocation.toLowerCase())
         );
       }
@@ -676,7 +676,7 @@ export default function HomePage() {
   );
 }
 
-function PostCard({ post, userRole }: { post: any; userRole: string }) {
+function PostCard({ post, userRole }: { post: PredictionListItem; userRole: string }) {
   const { t } = useApp();
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<CommentItem[]>([]);
@@ -832,7 +832,7 @@ function PostCard({ post, userRole }: { post: any; userRole: string }) {
                 </span>
               </div>
               <p style={{ fontSize: "0.875rem", color: "#1b5e20", margin: 0, fontWeight: 500, lineHeight: 1.4 }}>
-                {t(post.recommendation)}
+                {post.recommendation ? t(post.recommendation) : t("Advisory pending.")}
               </p>
             </div>
           )}

@@ -5,6 +5,12 @@ import type {
   PredictionListResponse,
   AnalyticsSummary,
   HealthStatus,
+  LoginCredentials,
+  RegisterPayload,
+  AuthToken,
+  UserAccount,
+  OutbreakSummary,
+  MedicineTreatment,
 } from "./types";
 
 class ApiError extends Error {
@@ -47,7 +53,7 @@ export async function checkHealth(): Promise<HealthStatus> {
   return handleResponse<HealthStatus>(res);
 }
 
-export async function loginUser(credentials: any): Promise<{ access_token: string; token_type: string }> {
+export async function loginUser(credentials: LoginCredentials): Promise<AuthToken> {
   const res = await fetch(`${API_URL}/api/v1/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -56,7 +62,7 @@ export async function loginUser(credentials: any): Promise<{ access_token: strin
   return handleResponse(res);
 }
 
-export async function registerUser(userData: any): Promise<any> {
+export async function registerUser(userData: RegisterPayload): Promise<UserAccount> {
   const res = await fetch(`${API_URL}/api/v1/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -269,12 +275,7 @@ export async function uploadFollowup(
   return handleResponse<Prediction>(res);
 }
 
-export async function getOutbreakSummary(): Promise<{
-  total_active_clusters: number;
-  high_risk_alerts: number;
-  monitored_regions: number;
-  clusters: any[];
-}> {
+export async function getOutbreakSummary(): Promise<OutbreakSummary> {
   const res = await fetch(`${API_URL}/api/v1/outbreaks/summary`, {
     headers: getHeaders(),
   });
@@ -320,7 +321,7 @@ export async function getMedicineTreatment(
   crop: string,
   disease: string,
   stage?: string
-): Promise<any> {
+): Promise<MedicineTreatment> {
   let url = `${API_URL}/api/v1/medicine/treatment?crop=${encodeURIComponent(crop)}&disease=${encodeURIComponent(disease)}`;
   if (stage) url += `&stage=${encodeURIComponent(stage)}`;
   const res = await fetch(url, { headers: getHeaders() });

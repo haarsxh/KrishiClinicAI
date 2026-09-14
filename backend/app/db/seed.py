@@ -7,7 +7,6 @@ from sqlalchemy import insert, select, func
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
 from app.core.config import get_settings
-from app.core.database import Base
 from app.models.prediction import Prediction
 from app.models.user import User
 from app.core.security import get_password_hash

@@ -2,7 +2,7 @@ import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func, select, cast, Date
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.base import AIProvider
 from app.models.prediction import Prediction
@@ -248,7 +248,6 @@ async def process_prediction_background(
 ):
     from app.core.database import async_session_factory
     from app.core.dependencies import get_ai_provider_by_name
-    from app.ai.embedding import generate_embedding, cosine_similarity
     from app.models.prediction import Prediction
     from sqlalchemy import select
 
@@ -333,7 +332,16 @@ async def process_prediction_background(
             pred.ai_provider = ai.provider_name
 
             confidence_val = ai_result.confidence or 0.0
-            if confidence_val >= settings.AUTO_APPROVE_CONFIDENCE_THRESHOLD:
+            if settings.REQUIRE_AGRONOMIST_APPROVAL:
+                # Every diagnosis waits for a human agronomist, regardless of how
+                # confident the model is.
+                pred.status = "PENDING_REVIEW"
+                pred.reviewed_at = None
+                logger.info(
+                    f"Background prediction {prediction_id} queued for agronomist review "
+                    f"(confidence {confidence_val:.2f}; agronomist approval is mandatory)."
+                )
+            elif confidence_val >= settings.AUTO_APPROVE_CONFIDENCE_THRESHOLD:
                 pred.status = "REVIEWED"
                 pred.reviewed_at = datetime.now(timezone.utc)
                 logger.info(

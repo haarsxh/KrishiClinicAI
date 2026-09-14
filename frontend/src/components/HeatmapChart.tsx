@@ -25,6 +25,13 @@ const OUTBREAK_DATA: RegionOutbreak[] = [
   { name: "Gujarat", ids: ["gj"], cx: 140, cy: 330, cases: 22, primaryDisease: "Groundnut Stem Rot", severity: "Medium" }
 ];
 
+// @svg-maps/india ships no type declarations for its location entries.
+interface SvgMapLocation {
+  id: string;
+  name: string;
+  path: string;
+}
+
 export default function HeatmapChart() {
   const { t } = useApp();
   const [selectedRegion, setSelectedRegion] = useState<RegionOutbreak | null>(OUTBREAK_DATA[0]);
@@ -54,7 +61,7 @@ export default function HeatmapChart() {
           style={{ width: "95%", height: "95%", opacity: 0.9 }}
         >
           <g id="india-states">
-            {India.locations.map((loc: any) => {
+            {India.locations.map((loc: SvgMapLocation) => {
               const active = isHighlighted(loc.id);
               return (
                 <path

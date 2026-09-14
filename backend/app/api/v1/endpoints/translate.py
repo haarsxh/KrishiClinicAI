@@ -1,6 +1,6 @@
 import logging
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from app.core.config import get_settings
 from app.ai.translation_data import (
@@ -8,8 +8,6 @@ from app.ai.translation_data import (
     DISEASE_TRANSLATIONS,
     ADVISORY_SENTENCE_TRANSLATIONS,
     STATUS_AND_UI_TRANSLATIONS,
-    CROP_TRANSLATIONS,
-    SEVERITY_TRANSLATIONS,
 )
 
 logger = logging.getLogger(__name__)

@@ -27,8 +27,8 @@ def main():
         from torch.utils.data import DataLoader
         from torchvision import transforms
         import timm
-        from huggingface_hub import HfApi
-    except ImportError as e:
+        from huggingface_hub import HfApi  # noqa: F401 - availability probe
+    except ImportError:
         logger.error("Missing required dependencies for training.", exc_info=True)
         print("Please install: pip install torch torchvision timm datasets huggingface_hub")
         return

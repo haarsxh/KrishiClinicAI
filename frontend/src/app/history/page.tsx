@@ -9,7 +9,7 @@ import { CROP_TYPES } from "@/lib/types";
 import { useApp, Translate } from "@/context/AppContext";
 import AuthPage from "@/components/AuthPage";
 
-function SeverityBadge({ severity, t }: { severity: string | null; t: any }) {
+function SeverityBadge({ severity, t }: { severity: string | null; t: (key: string) => string }) {
   if (!severity) return <span style={{ color: "var(--color-text-muted)" }}>—</span>;
   const translated = t(severity);
   const cls =

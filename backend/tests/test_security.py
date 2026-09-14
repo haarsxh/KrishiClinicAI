@@ -1,4 +1,3 @@
-import os
 import importlib
 import pytest
 from app.core import security

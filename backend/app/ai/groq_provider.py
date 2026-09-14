@@ -10,6 +10,40 @@ from app.ai.base import AIProvider, PredictionResult
 
 logger = logging.getLogger(__name__)
 
+# Vision models often describe confidence/severity in words rather than numbers.
+_CONFIDENCE_WORDS = {
+    "very low": 0.3, "low": 0.45, "moderate": 0.65, "medium": 0.65,
+    "fair": 0.65, "high": 0.88, "very high": 0.95, "certain": 0.95,
+}
+_SEVERITY_ALIASES = {
+    "none": "Low", "minimal": "Low", "mild": "Low", "low": "Low",
+    "moderate": "Medium", "medium": "Medium", "intermediate": "Medium",
+    "severe": "High", "high": "High", "critical": "High", "extreme": "High",
+}
+
+
+def _coerce_confidence(value, default: float = 0.88) -> float:
+    """Turn a numeric, percentage or descriptive confidence into a 0-1 float."""
+    if isinstance(value, (int, float)):
+        conf = float(value)
+    else:
+        text = str(value or "").strip().lower().rstrip("%")
+        if text in _CONFIDENCE_WORDS:
+            conf = _CONFIDENCE_WORDS[text]
+        else:
+            try:
+                conf = float(text)
+            except (TypeError, ValueError):
+                return default
+    if conf > 1.0:  # e.g. 88 meaning 88%
+        conf /= 100.0
+    return max(0.0, min(1.0, conf))
+
+
+def _coerce_severity(value, default: str = "Medium") -> str:
+    return _SEVERITY_ALIASES.get(str(value or "").strip().lower(), default)
+
+
 class GroqProvider(AIProvider):
 
     def __init__(self, api_key: str, model: str = "qwen/qwen3.6-27b"):
@@ -98,8 +132,7 @@ class GroqProvider(AIProvider):
                     elif not result_data.get("possible_reasons"):
                         result_data["possible_reasons"] = "Environmental moisture, humidity, or fungal pathogens."
 
-                    if result_data.get("severity") not in {"Low", "Medium", "High"}:
-                        result_data["severity"] = "Medium"
+                    result_data["severity"] = _coerce_severity(result_data.get("severity"))
 
                     if not result_data.get("predicted_disease") or "N/A" in str(result_data.get("predicted_disease")):
                         result_data["predicted_disease"] = "Foliar Blight"
@@ -107,14 +140,27 @@ class GroqProvider(AIProvider):
                     if not result_data.get("recommendation"):
                         result_data["recommendation"] = "Consult local agricultural extension officer for field confirmation."
 
-                    conf = float(result_data.get("confidence", 0.88))
-                    result_data["confidence"] = max(0.0, min(1.0, conf))
+                    result_data["confidence"] = _coerce_confidence(result_data.get("confidence"))
 
-                    return PredictionResult(**result_data)
+                    # Drop any extra keys the model invented so PredictionResult
+                    # construction cannot fail on unexpected kwargs.
+                    allowed = {
+                        "predicted_disease", "confidence", "severity",
+                        "recommendation", "possible_reasons",
+                    }
+                    return PredictionResult(**{k: v for k, v in result_data.items() if k in allowed})
                 except Exception:
-                    pass
+                    logger.warning(
+                        "Groq returned JSON that could not be mapped to a prediction; "
+                        "falling back to text parsing.",
+                        exc_info=True,
+                    )
 
             clean_text = re.sub(r"<think>[\s\S]*?</think>", "", raw_content).strip()
+            # Strip markdown fences and any JSON blob so the advisory shown to the
+            # farmer is prose, never a raw ```json payload.
+            clean_text = re.sub(r"```[a-zA-Z]*", "", clean_text).replace("```", "").strip()
+            clean_text = re.sub(r"\{[\s\S]*\}", "", clean_text).strip()
             disease = "Healthy" if "healthy" in clean_text.lower() else "Early Blight"
             severity = "High" if "high" in clean_text.lower() else ("Medium" if "medium" in clean_text.lower() else "Low")
             advisory = clean_text[:300] if clean_text else f"Apply recommended protective fungicide for {crop_type}."

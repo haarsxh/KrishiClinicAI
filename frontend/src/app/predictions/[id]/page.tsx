@@ -9,7 +9,7 @@ import { useApp } from "@/context/AppContext";
 import AuthPage from "@/components/AuthPage";
 import AudioPlayer from "@/components/AudioPlayer";
 
-function SeverityBadge({ severity, t }: { severity: string | null; t: any }) {
+function SeverityBadge({ severity, t }: { severity: string | null; t: (key: string) => string }) {
   if (!severity) return null;
   const translated = t(severity);
   const cls =
@@ -21,7 +21,7 @@ function SeverityBadge({ severity, t }: { severity: string | null; t: any }) {
   return <span className={`badge ${cls}`}>{translated}</span>;
 }
 
-function ConfidenceBar({ confidence, t }: { confidence: number; t: any }) {
+function ConfidenceBar({ confidence, t }: { confidence: number; t: (key: string) => string }) {
   const percentage = Math.round(confidence * 100);
   const cls =
     confidence >= 0.85
@@ -78,8 +78,9 @@ export default function PredictionDetailPage() {
       setPrediction(updated);
       setFollowupFile(null);
       setFollowupNotes("");
-    } catch (err: any) {
-      setFollowupError(err?.detail?.message || err?.message || "Failed to upload follow-up image");
+    } catch (err) {
+      const e = err as { detail?: { message?: string }; message?: string };
+      setFollowupError(e?.detail?.message || e?.message || "Failed to upload follow-up image");
     } finally {
       setFollowupLoading(false);
     }

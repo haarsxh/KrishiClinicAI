@@ -30,11 +30,12 @@ export default function AuthPage() {
         setIsLogin(true);
         setPassword("");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
+      const detail = (err as { detail?: { detail?: { message?: string }; message?: string } })?.detail;
       setError(
-        err.detail?.detail?.message || 
-        err.detail?.message || 
+        detail?.detail?.message ||
+        detail?.message ||
         "Something went wrong. Please try again."
       );
     } finally {

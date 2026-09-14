@@ -17,13 +17,16 @@ RUN pip install --no-cache-dir -r requirements.txt --index-url https://download.
 # Copy application code
 COPY . .
 
-# Ensure model weights and metadata are bundled for true zero-network offline capability
-RUN python -c "from pathlib import Path; \
-w = Path('app/ai/weights'); \
-w.mkdir(parents=True, exist_ok=True); \
-(w / 'model.pt').exists() or __import__('huggingface_hub').hf_hub_download(repo_id='the-harsh-vardhan/krishiclinic-crop-disease-v0-1-baseline-bmd', filename='model.pt', local_dir=str(w)); \
-(w / 'metadata.json').exists() or __import__('huggingface_hub').hf_hub_download(repo_id='the-harsh-vardhan/krishiclinic-crop-disease-v0-1-baseline-bmd', filename='metadata.json', local_dir=str(w)); \
-assert (w / 'model.pt').exists() and (w / 'metadata.json').exists(), 'Model weights must be bundled in app/ai/weights'"
+# Bundle the local EfficientNetV2-S weights for zero-network offline inference.
+# Only AI_PROVIDER=local needs them, so a failed fetch is a warning by default.
+# Set REQUIRE_WEIGHTS=true (with HF_TOKEN if the repo is private) to make it fatal.
+ARG HF_TOKEN=""
+ARG REQUIRE_WEIGHTS="false"
+ARG MODEL_REPO_ID="the-harsh-vardhan/krishiclinic-crop-disease-v0-1-baseline-bmd"
+RUN HF_TOKEN="$HF_TOKEN" \
+    REQUIRE_WEIGHTS="$REQUIRE_WEIGHTS" \
+    MODEL_REPO_ID="$MODEL_REPO_ID" \
+    python scripts/prefetch_weights.py
 
 # Create uploads directory
 RUN mkdir -p uploads

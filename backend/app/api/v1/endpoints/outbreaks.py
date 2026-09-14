@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+from typing import List
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func

@@ -1,5 +1,4 @@
 import io
-import os
 import json
 import logging
 from pathlib import Path
@@ -84,7 +83,7 @@ class LocalPyTorchProvider(AIProvider):
             import torch
             import timm
             from torchvision import transforms
-            from PIL import Image
+            from PIL import Image  # noqa: F401 - availability probe
             from huggingface_hub import hf_hub_download
         except ImportError as e:
             logger.error("Failed to import PyTorch, torchvision, timm, or huggingface_hub", exc_info=True)

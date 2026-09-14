@@ -1,9 +1,8 @@
-import os
-import hmac
 import hashlib
 import logging
 import asyncio
 from google import genai
+from google.genai import types
 
 from app.core.config import get_settings
 
@@ -12,12 +11,17 @@ import math
 
 logger = logging.getLogger(__name__)
 
+# text-embedding-004 was retired; gemini-embedding-001 is the current stable model.
+EMBEDDING_MODEL = "gemini-embedding-001"
+# Must match the mock embedding width so the two remain comparable.
+EMBEDDING_DIMENSIONS = 768
+
 def get_mock_embedding(text: str) -> list[float]:
     """
     Generate a 768-dimensional normalized feature-hashed embedding (Bag-of-Words + Subword n-grams).
     Provides meaningful cosine similarity for shared agronomic terms, crops, and symptoms in mock mode.
     """
-    vector = [0.0] * 768
+    vector = [0.0] * EMBEDDING_DIMENSIONS
     if not text:
         return vector
 
@@ -33,7 +37,7 @@ def get_mock_embedding(text: str) -> list[float]:
 
     for feat in features:
         h = int(hashlib.md5(feat.encode("utf-8")).hexdigest(), 16)
-        dim = h % 768
+        dim = h % EMBEDDING_DIMENSIONS
         sign = 1.0 if ((h >> 10) & 1) else -1.0
         vector[dim] += sign
 
@@ -59,11 +63,23 @@ async def generate_embedding(text: str) -> list[float]:
         response = await loop.run_in_executor(
             None,
             lambda: client.models.embed_content(
-                model="text-embedding-004",
-                contents=text
+                model=EMBEDDING_MODEL,
+                contents=text,
+                config=types.EmbedContentConfig(
+                    # Match the mock embedding size so real and mock vectors stay
+                    # comparable - cosine_similarity returns 0.0 on length mismatch.
+                    output_dimensionality=EMBEDDING_DIMENSIONS
+                ),
             )
         )
-        return response.embeddings[0].values
+        values = list(response.embeddings[0].values)
+
+        # Gemini only returns unit-norm vectors at full dimensionality, so
+        # re-normalise truncated ones to match the mock embedding contract.
+        norm = sum(v * v for v in values) ** 0.5
+        if norm > 0:
+            values = [v / norm for v in values]
+        return values
     except Exception as e:
         logger.warning(f"Error generating Gemini embedding: {e}. Falling back to mock embedding.")
         return get_mock_embedding(text)

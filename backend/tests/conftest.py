@@ -2,7 +2,6 @@ import os
 os.environ.setdefault("JWT_SECRET", "test-secret-key-1234567890-secure")
 os.environ["AI_PROVIDER"] = "mock"
 
-import asyncio
 from typing import AsyncGenerator
 import pytest
 import httpx
@@ -15,7 +14,6 @@ from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.core.database import Base
-from app.models.prediction import Prediction
 from app.core.dependencies import get_db, get_ai_provider, get_storage_provider, get_current_user, get_current_farmer, get_current_agronomist
 from app.models.user import User
 from app.ai.mock_provider import MockProvider
@@ -91,7 +89,7 @@ app.dependency_overrides[get_current_user] = override_get_current_user
 app.dependency_overrides[get_current_farmer] = override_get_current_farmer
 app.dependency_overrides[get_current_agronomist] = override_get_current_agronomist
 
-import app.core.database as db_mod
+import app.core.database as db_mod  # noqa: E402 - must follow override wiring
 db_mod.async_session_factory = TestingSessionLocal
 
 @pytest_asyncio.fixture(autouse=True)

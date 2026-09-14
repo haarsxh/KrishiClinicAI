@@ -1,5 +1,5 @@
 import pytest
-from app.ai.embedding import generate_embedding, get_mock_embedding, cosine_similarity
+from app.ai.embedding import generate_embedding, cosine_similarity
 
 @pytest.mark.asyncio
 async def test_mock_embedding_dimensions_and_norm():

@@ -84,21 +84,62 @@ Allows farmers to upload post-treatment follow-up photos alongside recovery note
 ## Quick Start
 
 ### Prerequisites
-- Python 3.10+
+- Python 3.12 (3.10+ works, 3.12 is what CI and Docker use)
 - Node.js 18+
 - Git
+- Docker + Docker Compose (optional — only for the containerised setup)
 
-### Backend Setup
+### Option A — Docker Compose (everything at once)
+
+```bash
+cp .env.example .env          # then set JWT_SECRET to any long random string
+docker compose up --build
+```
+
+This starts PostgreSQL, the API on http://localhost:8000, and the dashboard on
+http://localhost:3000. Nothing else is required — `AI_PROVIDER` defaults to `mock`,
+so no AI API keys are needed to run or demo the project.
+
+### Option B — Run locally without Docker
+
+**1. Configure environment**
+
+`JWT_SECRET` is mandatory: the API refuses to start without it. The quickest
+zero-dependency setup uses SQLite, so you don't need a PostgreSQL server:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env` so it contains at least:
+
+```bash
+JWT_SECRET=replace-with-a-long-random-string   # e.g. python3 -c "import secrets;print(secrets.token_urlsafe(32))"
+DATABASE_URL=sqlite+aiosqlite:///./krishiclinic.db
+AI_PROVIDER=mock
+```
+
+> To use PostgreSQL instead, set
+> `DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/krishiclinic`
+> and make sure a server is running (`docker compose up db` will provide one).
+
+**2. Backend**
 
 ```bash
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+python -m scripts.init_db     # create the tables
+python -m app.db.seed         # optional: demo users + 25 sample records
 uvicorn app.main:app --reload --port 8000
 ```
 
-### Frontend Setup
+> `scripts/init_db.py` picks the right path automatically: it runs the Alembic
+> migrations for PostgreSQL, and creates the schema straight from the ORM models
+> for SQLite (the migration chain itself is PostgreSQL-specific).
+
+**3. Frontend** (in a second terminal)
 
 ```bash
 cd frontend
@@ -107,6 +148,32 @@ npm run dev
 ```
 
 The web dashboard will be available at http://localhost:3000 and the API documentation at http://localhost:8000/docs.
+
+### Demo Accounts
+
+`python -m app.db.seed` (run automatically in Docker) creates three accounts,
+all with the password `password123`:
+
+| Username | Role |
+| --- | --- |
+| `farmer` | FARMER |
+| `agronomist` | AGRONOMIST |
+| `admin` | ADMIN |
+
+### Using the offline local model (optional)
+
+`AI_PROVIDER=local` runs EfficientNetV2-S on-device and needs `model.pt` +
+`metadata.json` in `backend/app/ai/weights/`. These are pulled from a private
+Hugging Face repo, so the build only warns (never fails) when they are
+unavailable — every other provider keeps working. To bundle them, supply a token
+with access:
+
+```bash
+docker build --build-arg HF_TOKEN=hf_xxx --build-arg REQUIRE_WEIGHTS=true ./backend
+```
+
+Alternatively point `MODEL_REPO_ID` at your own repo, or drop the two files into
+`backend/app/ai/weights/` manually.
 
 ## API Specification
 

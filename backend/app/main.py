@@ -1,14 +1,12 @@
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
-from dotenv import load_dotenv
-
-load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+# Importing the app package loads the .env file before any settings are read.
 from app.api.v1.router import router as v1_router
 from app.core.config import get_settings
 

@@ -4,20 +4,9 @@ import { useState, useEffect } from "react";
 import { getMedicineDiseases, getMedicineTreatment } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 
-interface TreatmentDetail {
-  chemical: string;
-  fungicide: string;
-  organic: string;
-  dose: string;
-  frequency: string;
-  notes: string;
-}
+import type { AllStagesTreatment } from "@/lib/types";
 
-interface AllStagesTreatment {
-  sowing?: TreatmentDetail;
-  mid_season?: TreatmentDetail;
-  pre_harvest?: TreatmentDetail;
-}
+type TreatmentStage = keyof AllStagesTreatment;
 
 interface MedicineAdvisorProps {
   cropType: string;
@@ -52,7 +41,7 @@ export default function MedicineAdvisor({
   const [diseases, setDiseases] = useState<string[]>([]);
   const [selectedDisease, setSelectedDisease] = useState(detectedDisease || "");
   const [treatment, setTreatment] = useState<AllStagesTreatment | null>(null);
-  const [activeStage, setActiveStage] = useState<string>("mid_season");
+  const [activeStage, setActiveStage] = useState<TreatmentStage>("mid_season");
   const [loading, setLoading] = useState(false);
   const [loadingDiseases, setLoadingDiseases] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +92,7 @@ export default function MedicineAdvisor({
 
   const activeData =
     treatment && activeStage
-      ? (treatment as any)[activeStage]
+      ? treatment[activeStage]
       : null;
 
   const handleApplyTreatment = () => {
@@ -219,7 +208,7 @@ export default function MedicineAdvisor({
             }}
           >
             {(["sowing", "mid_season", "pre_harvest"] as const).map((stage) => {
-              const hasData = !!(treatment as any)[stage];
+              const hasData = !!treatment[stage];
               return (
                 <button
                   key={stage}
